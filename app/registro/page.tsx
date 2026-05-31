@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 const provincias: Record<string, string[]> = {
   "Buenos Aires": ["La Plata","Mar del Plata","Bahia Blanca","Quilmes","Lanus","Lomas de Zamora","San Isidro","Vicente Lopez","Tigre","Morón","Merlo","Moreno","La Matanza","Tres de Febrero","San Martin","Avellaneda","Berazategui","Florencio Varela","Almirante Brown","Esteban Echeverria","Ezeiza","Hurlingham","Ituzaingo","José C. Paz","Malvinas Argentinas","San Miguel","Pilar","Escobar","Campana","Zarate","San Nicolás","Pergamino","Junin","Tandil","Necochea","Olavarria","Azul","Trenque Lauquen","Pehuajo","9 de Julio","Chivilcoy","Lujan","Mercedes","Pinamar","Villa Gesell","Miramar","San Clemente del Tuyú"],
@@ -56,6 +57,45 @@ export default function Registro() {
 
   const ciudadesDisponibles = provinciasSeleccionadas.flatMap(p => provincias[p] || []);
 
+  const handleRegistro = async () => {
+    const email = (document.getElementById("email") as HTMLInputElement).value;
+    const password = (document.getElementById("password") as HTMLInputElement).value;
+    const nombre = (document.getElementById("nombre") as HTMLInputElement).value;
+    const telefono = (document.getElementById("telefono") as HTMLInputElement).value;
+
+    if (!email || !password || !nombre) {
+      alert("Completa nombre, email y contrasena");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+
+    if (error) {
+      alert("Error: " + error.message);
+      return;
+    }
+
+    if (data.user) {
+      await supabase.from("users").insert({
+        id: data.user.id,
+        email,
+        full_name: nombre,
+        phone: telefono,
+        plan: "free",
+      });
+
+      await supabase.from("profiles").insert({
+        user_id: data.user.id,
+        city: ciudadesSeleccionadas[0] || "",
+        neighborhood: ciudadesSeleccionadas.join(", "),
+        is_public: true,
+      });
+
+      alert("Perfil creado. Revisa tu email para confirmar.");
+      window.location.href = "/";
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
@@ -71,22 +111,22 @@ export default function Registro() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-              <input type="text" placeholder="Juan Perez" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+              <input id="nombre" type="text" placeholder="Juan Perez" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" placeholder="juan@email.com" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+              <input id="email" type="email" placeholder="juan@email.com" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Telefono</label>
-              <input type="tel" placeholder="011 1234-5678" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+              <input id="telefono" type="tel" placeholder="011 1234-5678" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contrasena</label>
-              <input type="password" placeholder="Minimo 8 caracteres" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+              <input id="password" type="password" placeholder="Minimo 8 caracteres" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
             </div>
 
             <div>
@@ -177,7 +217,7 @@ export default function Registro() {
               <textarea rows={3} placeholder="Anos de experiencia, especialidades..." className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
             </div>
 
-            <button className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-sm hover:bg-orange-600">
+            <button onClick={handleRegistro} className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-sm hover:bg-orange-600">
               Crear mi perfil gratis
             </button>
 
