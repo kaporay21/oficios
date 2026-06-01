@@ -9,16 +9,26 @@ export default function PerfilProfesional({ params }: { params: { slug: string }
 
   useEffect(() => {
     const cargar = async () => {
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("*, users(*)")
+        .select("*")
         .eq("id", params.slug)
         .single();
 
-      if (profileData) {
-        setPerfil(profileData);
-        setUsuario(profileData.users);
+      if (profileError || !profileData) {
+        setCargando(false);
+        return;
       }
+
+      setPerfil(profileData);
+
+      const { data: userData } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", profileData.user_id)
+        .single();
+
+      if (userData) setUsuario(userData);
       setCargando(false);
     };
     cargar();
