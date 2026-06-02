@@ -116,7 +116,7 @@ export default function Buscar() {
                       <span className="text-yellow-400 text-sm">★★★★★</span>
                       <span className="text-xs text-gray-400">Nuevo</span>
                     </div>
-                    <a href={`/profesional/${r.slug || r.id}`} className="block w-full bg-orange-500 text-white text-center py-2 rounded-lg text-sm font-semibold hover:bg-orange-600">
+                    <a href={`/profesional/${r.id}`} className="block w-full bg-orange-500 text-white text-center py-2 rounded-lg text-sm font-semibold hover:bg-orange-600">
                       Ver perfil
                     </a>
                   </div>
