@@ -1,24 +1,22 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { use } from "react";
 
-export default function PerfilProfesional({ params }: { params: { slug: string } }) {
+export default function PerfilProfesional({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const [perfil, setPerfil] = useState<any>(null);
   const [usuario, setUsuario] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
+    if (!slug) return;
     const cargar = async () => {
-      console.log("Buscando perfil con id:", params.slug);
-
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", params.slug)
+        .eq("id", slug)
         .single();
-
-      console.log("Profile data:", profileData);
-      console.log("Profile error:", profileError);
 
       if (profileError || !profileData) {
         setCargando(false);
@@ -27,20 +25,17 @@ export default function PerfilProfesional({ params }: { params: { slug: string }
 
       setPerfil(profileData);
 
-      const { data: userData, error: userError } = await supabase
+      const { data: userData } = await supabase
         .from("users")
         .select("*")
         .eq("id", profileData.user_id)
         .single();
 
-      console.log("User data:", userData);
-      console.log("User error:", userError);
-
       if (userData) setUsuario(userData);
       setCargando(false);
     };
     cargar();
-  }, [params.slug]);
+  }, [slug]);
 
   if (cargando) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Cargando perfil...</p></div>;
   if (!perfil) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Perfil no encontrado</p></div>;
