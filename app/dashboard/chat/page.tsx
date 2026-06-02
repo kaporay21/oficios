@@ -16,11 +16,14 @@ export default function Chat() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
       setUserId(user.id);
-      const { data } = await supabase
-        .from("conversations")
-        .select("*")
-        .eq("professional_id", user.id)
-        .order("created_at", { ascending: false });
+console.log("USER ID:", user.id);
+const { data, error } = await supabase
+  .from("conversations")
+  .select("*")
+  .eq("professional_id", user.id)
+  .order("created_at", { ascending: false });
+console.log("CONVERSACIONES:", data);
+console.log("ERROR:", error);
       setConversaciones(data || []);
     };
     init();
