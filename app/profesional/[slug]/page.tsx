@@ -7,6 +7,13 @@ export default function PerfilProfesional({ params }: any) {
   const [usuario, setUsuario] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
   const [slug, setSlug] = useState<string>("");
+  const [showModal, setShowModal] = useState(false);
+  const [clienteNombre, setClienteNombre] = useState("");
+  const [clienteEmail, setClienteEmail] = useState("");
+  const [clientePhone, setClientePhone] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [enviado, setEnviado] = useState(false);
 
   useEffect(() => {
     const getSlug = async () => {
@@ -25,11 +32,7 @@ export default function PerfilProfesional({ params }: any) {
         .eq("id", slug)
         .maybeSingle();
 
-      if (!profileData) {
-        setCargando(false);
-        return;
-      }
-
+      if (!profileData) { setCargando(false); return; }
       setPerfil(profileData);
 
       const { data: userData } = await supabase
@@ -44,17 +47,45 @@ export default function PerfilProfesional({ params }: any) {
     cargar();
   }, [slug]);
 
-  if (cargando) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-400">Cargando perfil...</p>
-    </div>
-  );
+  const enviarConsulta = async () => {
+    if (!clienteNombre || !mensaje) return;
+    setEnviando(true);
 
-  if (!perfil) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-400">Perfil no encontrado</p>
-    </div>
-  );
+    const { data: conv } = await supabase
+      .from("conversations")
+      .insert({
+        professional_id: perfil.user_id,
+        client_name: clienteNombre,
+        client_email: clienteEmail,
+        client_phone: clientePhone,
+        status: "active",
+      })
+      .select()
+      .single();
+
+    if (conv) {
+      await supabase.from("messages").insert({
+        conversation_id: conv.id,
+        sender: "client",
+        sender_name: clienteNombre,
+        content: mensaje,
+        type: "text",
+      });
+    }
+
+    await supabase.from("contact_events").insert({
+      professional_id: perfil.user_id,
+      event_type: "quote_request",
+      source_zone: perfil.city,
+    });
+
+    setEnviando(false);
+    setEnviado(true);
+    setTimeout(() => { setShowModal(false); setEnviado(false); }, 3000);
+  };
+
+  if (cargando) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Cargando perfil...</p></div>;
+  if (!perfil) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Perfil no encontrado</p></div>;
 
   const waLink = `https://wa.me/${usuario?.phone?.replace(/\D/g,"")}?text=Hola+te+contacto+desde+OficiosYa`;
 
@@ -80,13 +111,8 @@ export default function PerfilProfesional({ params }: any) {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-2xl font-bold text-gray-800">
-                      {usuario?.full_name || "Profesional"}
-                    </h1>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      usuario?.plan === "master" ? "bg-orange-100 text-orange-600" :
-                      usuario?.plan === "pro" ? "bg-blue-100 text-blue-600" :
-                      "bg-gray-100 text-gray-500"}`}>
+                    <h1 className="text-2xl font-bold text-gray-800">{usuario?.full_name || "Profesional"}</h1>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${usuario?.plan === "master" ? "bg-orange-100 text-orange-600" : usuario?.plan === "pro" ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
                       {(usuario?.plan || "free").toUpperCase()}
                     </span>
                   </div>
@@ -100,12 +126,8 @@ export default function PerfilProfesional({ params }: any) {
                   {usuario?.full_name?.[0] || "P"}
                 </div>
               </div>
-              {perfil.bio && (
-                <p className="text-gray-600 text-sm mt-4 leading-relaxed">{perfil.bio}</p>
-              )}
-              {perfil.years_experience && (
-                <p className="text-gray-500 text-sm mt-2">{perfil.years_experience} anos de experiencia</p>
-              )}
+              {perfil.bio && <p className="text-gray-600 text-sm mt-4 leading-relaxed">{perfil.bio}</p>}
+              {perfil.years_experience && <p className="text-gray-500 text-sm mt-2">{perfil.years_experience} anos de experiencia</p>}
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -126,7 +148,7 @@ export default function PerfilProfesional({ params }: any) {
               <a href={waLink} target="_blank" className="block w-full bg-green-500 text-white text-center py-3 rounded-xl font-semibold hover:bg-green-600 mb-3">
                 Contactar por WhatsApp
               </a>
-              <button className="w-full bg-orange-50 text-orange-600 py-3 rounded-xl font-semibold border border-orange-200">
+              <button onClick={() => setShowModal(true)} className="w-full bg-orange-50 text-orange-600 py-3 rounded-xl font-semibold border border-orange-200 hover:bg-orange-100">
                 Pedir presupuesto
               </button>
               <div className="mt-4 pt-4 border-t border-gray-100">
@@ -138,6 +160,50 @@ export default function PerfilProfesional({ params }: any) {
 
         </div>
       </div>
+
+      {/* MODAL CONTACTO */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            {enviado ? (
+              <div className="text-center py-6">
+                <div className="text-5xl mb-4">✅</div>
+                <h3 className="font-bold text-gray-800 text-lg mb-2">Consulta enviada</h3>
+                <p className="text-gray-500 text-sm">El profesional recibio tu mensaje y te respondera pronto.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-gray-800">Contactar a {usuario?.full_name}</h3>
+                  <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">x</button>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tu nombre</label>
+                    <input value={clienteNombre} onChange={(e) => setClienteNombre(e.target.value)} type="text" placeholder="Juan Garcia" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tu email</label>
+                    <input value={clienteEmail} onChange={(e) => setClienteEmail(e.target.value)} type="email" placeholder="juan@email.com" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tu telefono</label>
+                    <input value={clientePhone} onChange={(e) => setClientePhone(e.target.value)} type="tel" placeholder="011 1234-5678" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Que necesitas?</label>
+                    <textarea value={mensaje} onChange={(e) => setMensaje(e.target.value)} rows={3} placeholder="Describí el trabajo que necesitas..." className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+                  </div>
+                  <button onClick={enviarConsulta} disabled={enviando || !clienteNombre || !mensaje} className="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-orange-600 disabled:opacity-50">
+                    {enviando ? "Enviando..." : "Enviar consulta"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
