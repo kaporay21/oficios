@@ -9,11 +9,16 @@ export default function PerfilProfesional({ params }: { params: { slug: string }
 
   useEffect(() => {
     const cargar = async () => {
+      console.log("Buscando perfil con id:", params.slug);
+
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", params.slug)
         .single();
+
+      console.log("Profile data:", profileData);
+      console.log("Profile error:", profileError);
 
       if (profileError || !profileData) {
         setCargando(false);
@@ -22,11 +27,14 @@ export default function PerfilProfesional({ params }: { params: { slug: string }
 
       setPerfil(profileData);
 
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from("users")
         .select("*")
         .eq("id", profileData.user_id)
         .single();
+
+      console.log("User data:", userData);
+      console.log("User error:", userError);
 
       if (userData) setUsuario(userData);
       setCargando(false);
