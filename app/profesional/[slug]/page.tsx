@@ -1,24 +1,31 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { use } from "react";
 
-export default function PerfilProfesional({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
+export default function PerfilProfesional({ params }: any) {
   const [perfil, setPerfil] = useState<any>(null);
   const [usuario, setUsuario] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
+  const [slug, setSlug] = useState<string>("");
+
+  useEffect(() => {
+    const getSlug = async () => {
+      const p = await params;
+      setSlug(p.slug);
+    };
+    getSlug();
+  }, [params]);
 
   useEffect(() => {
     if (!slug) return;
     const cargar = async () => {
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", slug)
-        .single();
+        .maybeSingle();
 
-      if (profileError || !profileData) {
+      if (!profileData) {
         setCargando(false);
         return;
       }
@@ -29,7 +36,7 @@ export default function PerfilProfesional({ params }: { params: Promise<{ slug: 
         .from("users")
         .select("*")
         .eq("id", profileData.user_id)
-        .single();
+        .maybeSingle();
 
       if (userData) setUsuario(userData);
       setCargando(false);
@@ -37,8 +44,17 @@ export default function PerfilProfesional({ params }: { params: Promise<{ slug: 
     cargar();
   }, [slug]);
 
-  if (cargando) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Cargando perfil...</p></div>;
-  if (!perfil) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Perfil no encontrado</p></div>;
+  if (cargando) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-400">Cargando perfil...</p>
+    </div>
+  );
+
+  if (!perfil) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-400">Perfil no encontrado</p>
+    </div>
+  );
 
   const waLink = `https://wa.me/${usuario?.phone?.replace(/\D/g,"")}?text=Hola+te+contacto+desde+OficiosYa`;
 
@@ -64,9 +80,14 @@ export default function PerfilProfesional({ params }: { params: Promise<{ slug: 
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-2xl font-bold text-gray-800">{usuario?.full_name || "Profesional"}</h1>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${usuario?.plan === "master" ? "bg-orange-100 text-orange-600" : usuario?.plan === "pro" ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
-                      {(usuario?.plan || "FREE").toUpperCase()}
+                    <h1 className="text-2xl font-bold text-gray-800">
+                      {usuario?.full_name || "Profesional"}
+                    </h1>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                      usuario?.plan === "master" ? "bg-orange-100 text-orange-600" :
+                      usuario?.plan === "pro" ? "bg-blue-100 text-blue-600" :
+                      "bg-gray-100 text-gray-500"}`}>
+                      {(usuario?.plan || "free").toUpperCase()}
                     </span>
                   </div>
                   <p className="text-gray-500 text-sm mt-1">{perfil.city || "Argentina"}</p>
@@ -79,8 +100,12 @@ export default function PerfilProfesional({ params }: { params: Promise<{ slug: 
                   {usuario?.full_name?.[0] || "P"}
                 </div>
               </div>
-              {perfil.bio && <p className="text-gray-600 text-sm mt-4 leading-relaxed">{perfil.bio}</p>}
-              {perfil.years_experience && <p className="text-gray-500 text-sm mt-2">{perfil.years_experience} anos de experiencia</p>}
+              {perfil.bio && (
+                <p className="text-gray-600 text-sm mt-4 leading-relaxed">{perfil.bio}</p>
+              )}
+              {perfil.years_experience && (
+                <p className="text-gray-500 text-sm mt-2">{perfil.years_experience} anos de experiencia</p>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-sm">
