@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Sidebar from "@/app/components/Sidebar";
 
@@ -14,52 +14,71 @@ export default function EditarPerfil() {
   const [experiencia, setExperiencia] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [fotos, setFotos] = useState<any[]>([]);
+  const [subiendo, setSubiendo] = useState(false);
+  const [userId, setUserId] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const cargarDatos = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
+      setUserId(user.id);
 
       const { data: userData } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
+        .from("users").select("*").eq("id", user.id).single();
       const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
+        .from("profiles").select("*").eq("user_id", user.id).single();
+      const { data: fotosData } = await supabase
+        .from("portfolio_photos").select("*").eq("user_id", user.id).order("order_index");
 
-      if (userData) {
-        setNombre(userData.full_name || "");
-        setTelefono(userData.phone || "");
-      }
-      if (profileData) {
-        setBio(profileData.bio || "");
-        setCiudad(profileData.city || "");
-        setExperiencia(profileData.years_experience || "");
-      }
+      if (userData) { setNombre(userData.full_name || ""); setTelefono(userData.phone || ""); }
+      if (profileData) { setBio(profileData.bio || ""); setCiudad(profileData.city || ""); setExperiencia(profileData.years_experience || ""); }
+      if (fotosData) setFotos(fotosData);
     };
     cargarDatos();
   }, []);
+
+  const subirFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    setSubiendo(true);
+
+    const ext = file.name.split(".").pop();
+    const fileName = `${userId}/${Date.now()}.${ext}`;
+
+    const { data, error } = await supabase.storage
+      .from("portfolio")
+      .upload(fileName, file, { cacheControl: "3600", upsert: false });
+
+    if (error) { alert("Error al subir: " + error.message); setSubiendo(false); return; }
+
+    const { data: urlData } = supabase.storage.from("portfolio").getPublicUrl(fileName);
+
+    const { data: foto } = await supabase.from("portfolio_photos").insert({
+      user_id: userId,
+      url: urlData.publicUrl,
+      order_index: fotos.length,
+    }).select().single();
+
+    if (foto) setFotos([...fotos, foto]);
+    setSubiendo(false);
+  };
+
+  const eliminarFoto = async (fotoId: string, url: string) => {
+    const path = url.split("/portfolio/")[1];
+    await supabase.storage.from("portfolio").remove([path]);
+    await supabase.from("portfolio_photos").delete().eq("id", fotoId);
+    setFotos(fotos.filter(f => f.id !== fotoId));
+  };
 
   const guardar = async () => {
     setGuardando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from("users").update({
-      full_name: nombre,
-      phone: telefono,
-    }).eq("id", user.id);
-
-    await supabase.from("profiles").update({
-      bio,
-      city: ciudad,
-      years_experience: parseInt(experiencia),
-    }).eq("user_id", user.id);
+    await supabase.from("users").update({ full_name: nombre, phone: telefono }).eq("id", user.id);
+    await supabase.from("profiles").update({ bio, city: ciudad, years_experience: parseInt(experiencia) }).eq("user_id", user.id);
 
     setMensaje("Perfil guardado correctamente");
     setGuardando(false);
@@ -76,9 +95,7 @@ export default function EditarPerfil() {
         </div>
 
         {mensaje && (
-          <div className="bg-green-100 border border-green-300 text-green-700 px-4 py-3 rounded-lg mb-6 text-sm">
-            {mensaje}
-          </div>
+          <div className="bg-green-100 border border-green-300 text-green-700 px-4 py-3 rounded-lg mb-6 text-sm">{mensaje}</div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -123,16 +140,39 @@ export default function EditarPerfil() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-6 md:col-span-2">
-            <h2 className="font-semibold text-gray-800 mb-4">Fotos de trabajos</h2>
-            <p className="text-sm text-gray-500 mb-4">Subi fotos de tus trabajos reales — el antes y el despues convence mas que cualquier descripcion</p>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
-              {[1,2,3,4,5,6].map((i) => (
-                <div key={i} className="bg-gray-100 rounded-xl h-24 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-200 border-2 border-dashed border-gray-300">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="font-semibold text-gray-800">Fotos de trabajos</h2>
+                <p className="text-xs text-gray-400 mt-1">{fotos.length} fotos subidas</p>
+              </div>
+              <button onClick={() => fileRef.current?.click()} disabled={subiendo} className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 disabled:opacity-50">
+                {subiendo ? "Subiendo..." : "+ Agregar foto"}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" onChange={subirFoto} className="hidden" />
+            </div>
+
+            {fotos.length === 0 ? (
+              <div onClick={() => fileRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl h-32 flex items-center justify-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition">
+                <div className="text-center">
+                  <p className="text-gray-400 text-sm">Clickea para subir tu primera foto</p>
+                  <p className="text-gray-300 text-xs mt-1">JPG, PNG hasta 5MB</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                {fotos.map((foto) => (
+                  <div key={foto.id} className="relative group">
+                    <img src={foto.url} alt="trabajo" className="w-full h-24 object-cover rounded-xl" />
+                    <button onClick={() => eliminarFoto(foto.id, foto.url)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs items-center justify-center hidden group-hover:flex">
+                      x
+                    </button>
+                  </div>
+                ))}
+                <div onClick={() => fileRef.current?.click()} className="bg-gray-100 rounded-xl h-24 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-200 border-2 border-dashed border-gray-300">
                   + Foto
                 </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400">Plan Free: hasta 10 fotos. Plan Pro: ilimitadas.</p>
+              </div>
+            )}
           </div>
         </div>
 
