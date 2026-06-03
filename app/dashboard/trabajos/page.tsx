@@ -1,28 +1,9 @@
+import Sidebar from "@/app/components/Sidebar";
+
 export default function Trabajos() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
-
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white shadow-sm min-h-screen p-6 hidden md:block">
-        <a href="/" className="text-xl font-bold text-orange-500 block mb-8">OficiosYa</a>
-        <nav className="space-y-1">
-          {[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Mi perfil", href: "/dashboard/perfil" },
-            { label: "Trabajos", href: "/dashboard/trabajos", activo: true },
-            { label: "Presupuestos", href: "/dashboard/presupuestos" },
-            { label: "Clientes", href: "/dashboard/clientes" },
-            { label: "Agenda", href: "/dashboard/agenda" },
-            { label: "Mi plan", href: "/dashboard/plan" },
-          ].map((item) => (
-            <a key={item.label} href={item.href} className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${item.activo ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      </aside>
-
-      {/* CONTENIDO */}
+      <Sidebar activo="Trabajos" />
       <main className="flex-1 p-8">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -34,7 +15,6 @@ export default function Trabajos() {
           </button>
         </div>
 
-        {/* TABS */}
         <div className="flex gap-2 mb-6">
           {["Todos", "Pendientes", "En curso", "Completados", "Cancelados"].map((tab, i) => (
             <button key={tab} className={`px-4 py-2 rounded-lg text-sm font-medium ${i === 0 ? "bg-orange-500 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
@@ -43,8 +23,7 @@ export default function Trabajos() {
           ))}
         </div>
 
-        {/* LISTA DE TRABAJOS */}
-        <div className="space-y-4">
+        <div className="space-y-4 mb-8">
           {[
             { titulo: "Destapacion cocina", cliente: "Laura Martinez", direccion: "Palermo, CABA", fecha: "Hoy 10:00", estado: "En curso", monto: "$8.500", color: "bg-orange-100 text-orange-700" },
             { titulo: "Instalacion termotanque", cliente: "Roberto Kahn", direccion: "Belgrano, CABA", fecha: "Manana 14:00", estado: "Pendiente", monto: "$15.000", color: "bg-yellow-100 text-yellow-700" },
@@ -67,8 +46,7 @@ export default function Trabajos() {
           ))}
         </div>
 
-        {/* MODAL NUEVO TRABAJO - simplificado */}
-        <div className="mt-8 bg-white rounded-2xl shadow-sm p-6">
+        <div className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="font-semibold text-gray-800 mb-4">Crear nuevo trabajo</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -108,7 +86,6 @@ export default function Trabajos() {
             Guardar trabajo
           </button>
         </div>
-
       </main>
     </div>
   );

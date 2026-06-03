@@ -1,35 +1,15 @@
+import Sidebar from "@/app/components/Sidebar";
+
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
-
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white shadow-sm min-h-screen p-6 hidden md:block">
-        <a href="/" className="text-xl font-bold text-orange-500 block mb-8">OficiosYa</a>
-        <nav className="space-y-1">
-          {[
-            { label: "Dashboard", href: "/dashboard", activo: true },
-            { label: "Mi perfil", href: "/dashboard/perfil" },
-            { label: "Trabajos", href: "/dashboard/trabajos" },
-            { label: "Presupuestos", href: "/dashboard/presupuestos" },
-            { label: "Clientes", href: "/dashboard/clientes" },
-            { label: "Agenda", href: "/dashboard/agenda" },
-            { label: "Mi plan", href: "/dashboard/plan" },
-          ].map((item) => (
-            <a key={item.label} href={item.href} className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${item.activo ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      </aside>
-
-      {/* CONTENIDO */}
+      <Sidebar activo="Dashboard" />
       <main className="flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Buen dia, profesional</h1>
           <p className="text-gray-500 text-sm mt-1">Resumen de tu actividad este mes</p>
         </div>
 
-        {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Vistas a tu perfil", valor: "0", color: "text-blue-600", bg: "bg-blue-50" },
@@ -44,7 +24,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* BANNER FREE */}
         <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6 mb-8">
           <div className="flex justify-between items-center">
             <div>
@@ -57,7 +36,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ACCESOS RAPIDOS */}
         <div className="mb-8">
           <h2 className="font-semibold text-gray-700 mb-4">Accesos rapidos</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -73,14 +51,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ULTIMAS NOTIFICACIONES */}
         <div>
           <h2 className="font-semibold text-gray-700 mb-4">Notificaciones</h2>
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <p className="text-gray-400 text-sm text-center py-4">No tenes notificaciones nuevas</p>
           </div>
         </div>
-
       </main>
     </div>
   );
