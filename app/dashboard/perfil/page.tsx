@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import Sidebar from "@/app/components/Sidebar";
 
 const provincias = ["Buenos Aires","CABA","Catamarca","Chaco","Chubut","Córdoba","Corrientes","Entre Rios","Formosa","Jujuy","La Pampa","La Rioja","Mendoza","Misiones","Neuquén","Rio Negro","Salta","San Juan","San Luis","Santa Cruz","Santa Fe","Santiago del Estero","Tierra del Fuego","Tucumán"];
 
@@ -67,26 +68,7 @@ export default function EditarPerfil() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-
-      <aside className="w-64 bg-white shadow-sm min-h-screen p-6 hidden md:block">
-        <a href="/" className="text-xl font-bold text-orange-500 block mb-8">OficiosYa</a>
-        <nav className="space-y-1">
-          {[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Mi perfil", href: "/dashboard/perfil", activo: true },
-            { label: "Trabajos", href: "/dashboard/trabajos" },
-            { label: "Presupuestos", href: "/dashboard/presupuestos" },
-            { label: "Clientes", href: "/dashboard/clientes" },
-            { label: "Agenda", href: "/dashboard/agenda" },
-            { label: "Mi plan", href: "/dashboard/plan" },
-          ].map((item) => (
-            <a key={item.label} href={item.href} className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${item.activo ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      </aside>
-
+      <Sidebar activo="Mi perfil" />
       <main className="flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Mi perfil</h1>
@@ -100,7 +82,6 @@ export default function EditarPerfil() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="font-semibold text-gray-800 mb-4">Datos personales</h2>
             <div className="space-y-4">
@@ -153,18 +134,16 @@ export default function EditarPerfil() {
             </div>
             <p className="text-xs text-gray-400">Plan Free: hasta 10 fotos. Plan Pro: ilimitadas.</p>
           </div>
-
         </div>
 
         <div className="mt-6 flex gap-4">
           <button onClick={guardar} disabled={guardando} className="bg-orange-500 text-white px-8 py-3 rounded-xl font-semibold text-sm hover:bg-orange-600 disabled:opacity-50">
             {guardando ? "Guardando..." : "Guardar cambios"}
           </button>
-          <a href={`/profesional/mi-perfil`} className="border border-gray-200 text-gray-600 px-8 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50">
+          <a href="/profesional/mi-perfil" className="border border-gray-200 text-gray-600 px-8 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50">
             Ver mi perfil publico
           </a>
         </div>
-
       </main>
     </div>
   );

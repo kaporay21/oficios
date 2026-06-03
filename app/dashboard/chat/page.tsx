@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import Sidebar from "@/app/components/Sidebar";
 
 export default function Chat() {
   const [conversaciones, setConversaciones] = useState<any[]>([]);
@@ -16,14 +17,11 @@ export default function Chat() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
       setUserId(user.id);
-console.log("USER ID:", user.id);
-const { data, error } = await supabase
-  .from("conversations")
-  .select("*")
-  .eq("professional_id", user.id)
-  .order("created_at", { ascending: false });
-console.log("CONVERSACIONES:", data);
-console.log("ERROR:", error);
+      const { data } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("professional_id", user.id)
+        .order("created_at", { ascending: false });
       setConversaciones(data || []);
     };
     init();
@@ -104,29 +102,9 @@ console.log("ERROR:", error);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-white shadow-sm min-h-screen p-6 hidden md:block">
-        <a href="/" className="text-xl font-bold text-orange-500 block mb-8">OficiosYa</a>
-        <nav className="space-y-1">
-          {[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Mi perfil", href: "/dashboard/perfil" },
-            { label: "Trabajos", href: "/dashboard/trabajos" },
-            { label: "Presupuestos", href: "/dashboard/presupuestos" },
-            { label: "Clientes", href: "/dashboard/clientes" },
-            { label: "Agenda", href: "/dashboard/agenda" },
-            { label: "Chat", href: "/dashboard/chat", activo: true },
-            { label: "Mi plan", href: "/dashboard/plan" },
-          ].map((item) => (
-            <a key={item.label} href={item.href} className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${item.activo ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100"}`}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      </aside>
+      <Sidebar activo="Chat" />
 
       <main className="flex-1 flex">
-
-        {/* LISTA DE CONVERSACIONES */}
         <div className="w-72 bg-white border-r border-gray-100 flex flex-col">
           <div className="p-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-800">Mensajes</h2>
@@ -156,7 +134,6 @@ console.log("ERROR:", error);
           </div>
         </div>
 
-        {/* AREA DE CHAT */}
         <div className="flex-1 flex flex-col">
           {!convActiva ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -168,7 +145,6 @@ console.log("ERROR:", error);
             </div>
           ) : (
             <>
-              {/* HEADER CHAT */}
               <div className="bg-white border-b border-gray-100 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold">
@@ -189,7 +165,6 @@ console.log("ERROR:", error);
                 </div>
               </div>
 
-              {/* MENSAJES */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {mensajes.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.sender === "professional" ? "justify-end" : "justify-start"}`}>
@@ -210,7 +185,6 @@ console.log("ERROR:", error);
                 <div ref={bottomRef} />
               </div>
 
-              {/* INPUT */}
               <div className="bg-white border-t border-gray-100 p-4 flex gap-3">
                 <input
                   value={nuevoMensaje}
@@ -226,7 +200,6 @@ console.log("ERROR:", error);
             </>
           )}
         </div>
-
       </main>
     </div>
   );
