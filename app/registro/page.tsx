@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 
 const provincias: Record<string, string[]> = {
   "Buenos Aires": ["La Plata","Mar del Plata","Bahia Blanca","Quilmes","Lanus","Lomas de Zamora","San Isidro","Vicente Lopez","Tigre","Morón","Merlo","Moreno","La Matanza","Tres de Febrero","San Martin","Avellaneda","Berazategui","Florencio Varela","Almirante Brown","Esteban Echeverria","Ezeiza","Hurlingham","Ituzaingo","José C. Paz","Malvinas Argentinas","San Miguel","Pilar","Escobar","Campana","Zarate","San Nicolás","Pergamino","Junin","Tandil","Necochea","Olavarria","Azul","Trenque Lauquen","Pehuajo","9 de Julio","Chivilcoy","Lujan","Mercedes","Pinamar","Villa Gesell","Miramar","San Clemente del Tuyú"],
-  "CABA": ["Palermo","Belgrano","Recoleta","Caballito","Flores","Villa del Parque","Villa Urquiza","Almagro","Balvanera","San Telmo","La Boca","Barracas","Parque Patricios","Boedo","Villa Lugano","Mataderos","Liniers","Versalles","Monte Castro","Villa Real","Floresta","Velez Sarsfield","Villa Luro","Paternal","Villa Ortuzar","Coghlan","Saavedra","Colegiales","Nunez","Chacarita","Devoto","Agronomia","Villa Pueyrredon","Villa del Parque","Constitucion","Monserrat","Puerto Madero","Retiro","San Nicolas","Centro"],
+  "CABA": ["Palermo","Belgrano","Recoleta","Caballito","Flores","Villa del Parque","Villa Urquiza","Almagro","Balvanera","San Telmo","La Boca","Barracas","Parque Patricios","Boedo","Villa Lugano","Mataderos","Liniers","Versalles","Monte Castro","Villa Real","Floresta","Velez Sarsfield","Villa Luro","Paternal","Villa Ortuzar","Coghlan","Saavedra","Colegiales","Nunez","Chacarita","Devoto","Agronomia","Villa Pueyrredon","Constitucion","Monserrat","Puerto Madero","Retiro","San Nicolas","Centro"],
   "Catamarca": ["San Fernando del Valle de Catamarca","San Isidro","Tinogasta","Belen","Santa Maria","Andalgala","Recreo","Valle Viejo","Capayan","El Alto"],
   "Chaco": ["Resistencia","Barranqueras","Fontana","Presidencia Roque Saenz Pena","Villa Angela","Charata","Gancedo","Juan Jose Castelli","Las Breñas","Quitilipi","Machagai","General Pinedo","Presidencia de la Plaza","Napenay"],
   "Chubut": ["Rawson","Comodoro Rivadavia","Trelew","Puerto Madryn","Esquel","Rada Tilly","Gaiman","Dolavon","Sarmiento","Rio Mayo","Puerto Piramides","Lago Puelo","El Maiten","Cholila","Camarones"],
@@ -29,9 +29,12 @@ const provincias: Record<string, string[]> = {
   "Tucumán": ["San Miguel de Tucumán","Tafi Viejo","Yerba Buena","Banda del Rio Sali","Concepcion","Famailla","Monteros","Aguilares","Rio Chico","La Cocha","Tafi del Valle","Amaicha del Valle","Colalao del Valle"]
 };
 
+const OFICIOS = ["Plomeria","Electricidad","Gas","Pintura","Construccion","Aire acondicionado","Herreria","Cerrajeria","Carpinteria","Jardineria"];
+
 export default function Registro() {
   const [provinciasSeleccionadas, setProvinciasSeleccionadas] = useState<string[]>([]);
   const [ciudadesSeleccionadas, setCiudadesSeleccionadas] = useState<string[]>([]);
+  const [oficiosSeleccionados, setOficiosSeleccionados] = useState<string[]>([]);
   const [provinciaAbierta, setProvinciaAbierta] = useState(false);
   const [ciudadAbierta, setCiudadAbierta] = useState(false);
 
@@ -55,25 +58,31 @@ export default function Registro() {
     );
   };
 
-  const ciudadesDisponibles = provinciasSeleccionadas.flatMap(p => provincias[p] || []);
+  const toggleOficio = (o: string) => {
+    setOficiosSeleccionados(prev =>
+      prev.includes(o) ? prev.filter(x => x !== o) : [...prev, o]
+    );
+  };
 
   const handleRegistro = async () => {
     const email = (document.getElementById("email") as HTMLInputElement).value;
     const password = (document.getElementById("password") as HTMLInputElement).value;
     const nombre = (document.getElementById("nombre") as HTMLInputElement).value;
     const telefono = (document.getElementById("telefono") as HTMLInputElement).value;
+    const bio = (document.getElementById("bio") as HTMLTextAreaElement).value;
 
     if (!email || !password || !nombre) {
       alert("Completa nombre, email y contrasena");
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      alert("Error: " + error.message);
+    if (oficiosSeleccionados.length === 0) {
+      alert("Selecciona al menos un oficio");
       return;
     }
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) { alert("Error: " + error.message); return; }
 
     if (data.user) {
       await supabase.from("users").insert({
@@ -86,21 +95,38 @@ export default function Registro() {
 
       await supabase.from("profiles").insert({
         user_id: data.user.id,
-        city: ciudadesSeleccionadas[0] || "",
+        city: ciudadesSeleccionadas[0] || provinciasSeleccionadas[0] || "",
         neighborhood: ciudadesSeleccionadas.join(", "),
+        bio,
         is_public: true,
       });
 
-      alert("Perfil creado. Revisa tu email para confirmar.");
-      window.location.href = "/";
+      // Guardar oficios en user_categories
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("id, slug")
+        .in("slug", oficiosSeleccionados.map(o => o.toLowerCase().replace(/ /g, "-")));
+
+      if (cats && cats.length > 0) {
+        const inserts = cats.map((cat, i) => ({
+          user_id: data.user.id,
+          category_id: cat.id,
+          is_primary: i === 0,
+        }));
+        await supabase.from("user_categories").insert(inserts);
+      }
+
+      alert("Perfil creado correctamente.");
+      window.location.href = "/dashboard";
     }
   };
 
   return (
     <main className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <a href="/" className="text-2xl font-bold text-orange-500">OficiosYa</a>
+          <a href="/login" className="text-sm text-gray-500 hover:text-orange-500">Ya tengo cuenta</a>
         </div>
       </header>
       <div className="max-w-2xl mx-auto px-4 py-12">
@@ -130,11 +156,13 @@ export default function Registro() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tus oficios (podes elegir varios)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tus oficios (podes elegir varios) *</label>
               <div className="grid grid-cols-2 gap-2">
-                {["Plomeria","Electricidad","Gas","Pintura","Construccion","Aire acondicionado","Herreria","Cerrajeria","Carpinteria","Jardineria"].map((oficio) => (
-                  <label key={oficio} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:border-orange-400 hover:bg-orange-50">
-                    <input type="checkbox" value={oficio} className="accent-orange-500" />
+                {OFICIOS.map((oficio) => (
+                  <label key={oficio} onClick={() => toggleOficio(oficio)} className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer transition ${oficiosSeleccionados.includes(oficio) ? "border-orange-400 bg-orange-50" : "border-gray-200 hover:border-orange-400 hover:bg-orange-50"}`}>
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${oficiosSeleccionados.includes(oficio) ? "bg-orange-500 border-orange-500" : "border-gray-300"}`}>
+                      {oficiosSeleccionados.includes(oficio) && <span className="text-white text-xs">✓</span>}
+                    </div>
                     <span className="text-sm text-gray-700">{oficio}</span>
                   </label>
                 ))}
@@ -214,7 +242,7 @@ export default function Registro() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contanos sobre vos</label>
-              <textarea rows={3} placeholder="Anos de experiencia, especialidades..." className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
+              <textarea id="bio" rows={3} placeholder="Anos de experiencia, especialidades..." className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm" />
             </div>
 
             <button onClick={handleRegistro} className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-sm hover:bg-orange-600">
